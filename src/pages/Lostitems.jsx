@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-
+import { useNavigate } from "react-router-dom";
 function Lostitems() {
   const [show, setShow] = useState(false);
 
@@ -65,7 +65,7 @@ function Lostitems() {
             <span className="text-red-700">Lost</span>
             <span className="text-green-700"> Items</span>
           </h1>
-          <button className="flex items-center bg-red-500 hover:bg-red-600 text-white text-lg font-semibold py-3 px-8 rounded-lg shadow transition mx-auto md:mx-0">
+          <button onClick={() => navigate("/report-lost-item")} className="flex items-center bg-red-500 hover:bg-red-600 text-white text-lg font-semibold py-3 px-8 rounded-lg shadow transition mx-auto md:mx-0">
             Report
             <img
               src="https://img.icons8.com/fluency/32/box-important.png"
