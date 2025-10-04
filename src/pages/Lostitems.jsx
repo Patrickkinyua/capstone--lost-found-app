@@ -21,7 +21,7 @@ function Lostitems() {
       location: "University Library",
       description: "Leather wallet with ID cards and student pass.",
       image:
-        "https://images.unsplash.com/photo-1607083204512-4c8f4c0ef51e?auto=format&fit=crop&w=500&q=60",
+        "https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&h=500&fit=crop",
     },
     {
       id: 2,
@@ -48,7 +48,7 @@ function Lostitems() {
       location: "Cafeteria",
       description: "Blue backpack with textbooks inside.",
       image:
-        "https://images.unsplash.com/photo-1622495894094-37fcbe8bbf1e?auto=format&fit=crop&w=500&q=60",
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop",
     },
   ];
 
