@@ -4,6 +4,8 @@ import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 function Lostitems() {
   const [show, setShow] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Trigger animation after mount
@@ -95,13 +97,24 @@ function Lostitems() {
               type="text"
               placeholder="Search lost item..."
               className="flex-1 outline-none bg-transparent text-lg"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
         {/* Cards */}
         <div className="flex flex-wrap justify-center gap-8">
-          {lostItems.map((item) => (
+          {lostItems
+            .filter((item) => {
+              const query = searchQuery.toLowerCase();
+              return (
+                item.name.toLowerCase().includes(query) ||
+                item.location.toLowerCase().includes(query) ||
+                item.description.toLowerCase().includes(query)
+              );
+            })
+            .map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-xl shadow-md w-72 mb-6 flex flex-col transform hover:scale-105 hover:shadow-lg transition"
