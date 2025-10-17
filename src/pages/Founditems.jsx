@@ -2,54 +2,73 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
+import { getPlaceholderImage, getLocalFoundItems, deleteFoundItem } from "../api-work/fetchinng";
 
 function Founditems() {
   const [show, setShow] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [foundItems, setFoundItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setTimeout(() => setShow(true), 100);
+    
+    // Load found items from localStorage
+    const loadFoundItems = () => {
+      try {
+        setLoading(true);
+        
+        // Get items marked as found from localStorage
+        const items = getLocalFoundItems();
+        console.log("Found items from localStorage:", items);
+        console.log("Number of found items:", items.length);
+        
+        // Transform and add placeholder images
+        const itemsWithImages = items.map((item) => ({
+          ...item,
+          image: getPlaceholderImage(item.item || item.name),
+        }));
+        
+        setFoundItems(itemsWithImages);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to load found items:", err);
+        setError("Failed to load items. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadFoundItems();
   }, []);
 
-  const foundItems = [
-    {
-      id: 1,
-      name: "Blue Notebook",
-      date: "Oct 1, 2025",
-      location: "Main Hall",
-      description: "Spiral notebook with lecture notes, found on bench.",
-      image:
-        "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=500&h=500&fit=crop",
-    },
-    {
-      id: 2,
-      name: "Red Umbrella",
-      date: "Oct 3, 2025",
-      location: "Bus Stop",
-      description: "Large red umbrella left at the campus bus stop.",
-      image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=500&q=60",
-    },
-    {
-      id: 3,
-      name: "Phone Charger",
-      date: "Oct 5, 2025",
-      location: "Study Room 3",
-      description: "iPhone charger cable found under desk.",
-      image:
-        "https://images.unsplash.com/photo-1591290619762-c588f8e8e1f4?auto=format&fit=crop&w=500&q=60",
-    },
-    {
-      id: 4,
-      name: "Water Bottle",
-      date: "Oct 7, 2025",
-      location: "Gym",
-      description: "Stainless steel water bottle with university logo.",
-      image:
-        "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop",
-    },
-  ];
+  // Handle deleting a found item
+  const handleDeleteItem = async (item) => {
+    setDeleting(true);
+    try {
+      console.log("Starting delete for item:", item);
+      
+      // Delete from localStorage
+      deleteFoundItem(item.id);
+      
+      // Remove from UI
+      setFoundItems(prev => prev.filter(i => i.id !== item.id));
+      setItemToDelete(null);
+      
+      // Show success message
+      alert('✓ Item deleted successfully!');
+    } catch (err) {
+      console.error('❌ Failed to delete item:', err);
+      alert('Failed to delete item. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -105,15 +124,36 @@ function Founditems() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mb-4"></div>
+              <p className="text-gray-600 text-lg">Loading found items...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg">
+              <p className="font-semibold">Error</p>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Cards Grid */}
+        {!loading && !error && (
         <div className="flex flex-wrap justify-center gap-8">
           {foundItems
             .filter((item) => {
               const query = searchQuery.toLowerCase();
               return (
-                item.name.toLowerCase().includes(query) ||
-                item.location.toLowerCase().includes(query) ||
-                item.description.toLowerCase().includes(query)
+                (item.item || item.name || "").toLowerCase().includes(query) ||
+                (item.location || "").toLowerCase().includes(query) ||
+                (item.description || "").toLowerCase().includes(query)
               );
             })
             .map((item) => (
@@ -125,11 +165,11 @@ function Founditems() {
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-100 rounded-t-xl">
                   <div className="flex items-center">
                     <div className="bg-blue-400 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-2">
-                      {item.name.charAt(0)}
+                      {(item.item || item.name).charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="font-semibold text-gray-700 text-sm">
-                        {item.name}
+                        {item.item || item.name}
                       </div>
                       <div className="text-xs text-gray-400">{item.date}</div>
                     </div>
@@ -140,24 +180,181 @@ function Founditems() {
                 <div className="flex items-center justify-center px-4 py-6">
                   <img
                     src={item.image}
-                    alt={item.name}
+                    alt={item.item || item.name}
                     className="w-full h-44 object-cover rounded-lg"
                   />
                 </div>
 
                 {/* Card Body */}
                 <div className="px-4 pb-4 flex-1">
+                  <div className="text-sm text-gray-400 mb-2">{item.location}</div>
                   <div className="text-sm text-gray-600 mb-4 line-clamp-3">
                     {item.description}
                   </div>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-6 rounded-full float-right transition transform hover:scale-105">
-                    Contact
-                  </button>
+                  <div className="flex gap-2 justify-end">
+                    <button 
+                      onClick={() => setItemToDelete(item)}
+                      className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 px-4 rounded-full transition transform hover:scale-105"
+                    >
+                      Delete
+                    </button>
+                    <button 
+                      onClick={() => setSelectedItem(item)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-6 rounded-full transition transform hover:scale-105"
+                    >
+                      Contact
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
         </div>
+        )}
+
+        {/* No Results */}
+        {!loading && !error && foundItems.length === 0 && (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="text-center text-gray-500">
+              <p className="text-xl font-semibold mb-2">No found items yet</p>
+              <p>Be the first to report a found item!</p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => !deleting && setItemToDelete(null)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-2xl font-bold text-gray-800">Delete Item?</h3>
+              <button 
+                onClick={() => setItemToDelete(null)}
+                disabled={deleting}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete <span className="font-semibold">{itemToDelete.item || itemToDelete.name}</span>?
+              </p>
+              <p className="text-sm text-gray-500">
+                This action cannot be undone. The item will be permanently removed from the found items list.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setItemToDelete(null)}
+                disabled={deleting}
+                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleDeleteItem(itemToDelete)}
+                disabled={deleting}
+                className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition ${
+                  deleting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {selectedItem && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => setSelectedItem(null)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-2xl font-bold text-gray-800">Contact Details</h3>
+              <button 
+                onClick={() => setSelectedItem(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-700 mb-2">Item Details</h4>
+                <p className="text-gray-600"><span className="font-medium">Item:</span> {selectedItem.item || selectedItem.name}</p>
+                <p className="text-gray-600"><span className="font-medium">Location:</span> {selectedItem.location}</p>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-700 mb-3">Contact Information</h4>
+                
+                <div className="flex items-center mb-3">
+                  <div className="bg-blue-100 p-2 rounded-full mr-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Name</p>
+                    <p className="font-medium text-gray-800">{selectedItem.name}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center mb-3">
+                  <div className="bg-blue-100 p-2 rounded-full mr-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Phone</p>
+                    <a href={`tel:${selectedItem.phone}`} className="font-medium text-blue-600 hover:underline">
+                      {selectedItem.phone || 'Not provided'}
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  <div className="bg-blue-100 p-2 rounded-full mr-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Email</p>
+                    <a href={`mailto:${selectedItem.email}`} className="font-medium text-blue-600 hover:underline break-all">
+                      {selectedItem.email || 'Not provided'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setSelectedItem(null)}
+              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>
